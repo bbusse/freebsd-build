@@ -1,0 +1,28 @@
+name: Build FreeBSD
+
+on:
+  push:
+    paths-ignore:
+      - '**.md'
+  pull_request:
+    paths-ignore:
+      - '**.md'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-12
+    name: Build FreeBSD
+    steps:
+    - name: Build FreeBSD
+      uses: vmactions/freebsd-vm@v0.3.0
+      id: build
+      with:
+        mem: 4096
+        usesh: true
+        sync: sshfs
+        run: |
+          pkg install -y bash git sudo
+          git clone https://github.com/opsboost/image-builder
+          sudo ./image-builder/image-builder install
+          sudo image-builder build freebsd
