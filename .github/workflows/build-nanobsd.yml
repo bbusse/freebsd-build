@@ -1,4 +1,4 @@
-name: Build FreeBSD
+name: Build NanoBSD
 
 on:
   push:
@@ -10,11 +10,11 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-freebsd:
+  build-nanobsd:
     runs-on: macos-12
-    name: Build FreeBSD
+    name: Build NanoBSD
     steps:
-    - name: Build FreeBSD
+    - name: Build NanoBSD
       uses: vmactions/freebsd-vm@v0.3.0
       id: build
       with:
@@ -23,9 +23,6 @@ jobs:
         sync: sshfs
         run: |
           pkg install -y bash git sudo
-          pwd
-          ls -al
-          cd /tmp
-          git clone --depth 1 -b dev https://github.com/opsboost/image-builder
+          git clone -b dev --depth 1 https://github.com/opsboost/image-builder
           sudo ./image-builder/image-builder install
-          sudo image-builder build freebsd
+          sudo image-builder build nanobsd
