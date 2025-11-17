@@ -18,7 +18,8 @@ jobs:
       uses: vmactions/freebsd-vm@v1
       id: build
       with:
-        mem: 4096
+        with:
+        release: "15.0"
         usesh: true
         sync: sshfs
         run: |
