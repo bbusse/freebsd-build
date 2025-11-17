@@ -11,11 +11,11 @@ on:
 
 jobs:
   build-nanobsd:
-    runs-on: macos-12
+    runs-on: ubuntu-latest
     name: Build NanoBSD
     steps:
     - name: Build NanoBSD
-      uses: vmactions/freebsd-vm@v0.3.0
+      uses: vmactions/freebsd-vm@v1
       id: build
       with:
         mem: 4096
