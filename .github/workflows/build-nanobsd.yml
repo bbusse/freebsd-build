@@ -10,19 +10,9 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-nanobsd:
-    runs-on: ubuntu-latest
+  build:
     name: Build NanoBSD
-    steps:
-    - name: Build NanoBSD
-      uses: vmactions/freebsd-vm@v1
-      id: build
-      with:
-        mem: 4096
-        usesh: true
-        sync: sshfs
-        run: |
-          pkg install -y bash git sudo
-          git clone -b dev --depth 1 https://github.com/opsboost/image-builder
-          sudo ./image-builder/image-builder install
-          sudo image-builder build nanobsd
+    uses: bbusse/github-workflows/.github/workflows/build-nanobsd.yml@dev
+    with:
+      image_builder_ref: dev
+      mem: 4096

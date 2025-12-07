@@ -10,26 +10,12 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-freebsd:
-    runs-on: ubuntu-latest
-    name: Build FreeBSD
-    steps:
-    # We ran out of space before
-    - name: Free disk space
-      run: curl -fsSL https://raw.githubusercontent.com/kou/arrow/e49d8ae15583ceff03237571569099a6ad62be32/ci/scripts/util_free_space.sh | bash
-    - name: Build FreeBSD
-      uses: vmactions/freebsd-vm@v1
-      id: build
-      with:
-        with:
-        release: "15.0"
-        usesh: true
-        sync: sshfs
-        run: |
-          pkg install -y bash git sudo
-          pwd
-          ls -al
-          cd /tmp
-          git clone --depth 1 -b dev https://github.com/opsboost/image-builder
-          sudo ./image-builder/image-builder install
-          sudo image-builder build freebsd
+  build:
+    name: Build FreeBSD ${{ matrix.release }}
+    strategy:
+      matrix:
+        release: ["15.0"]
+    uses: bbusse/github-workflows/.github/workflows/build-freebsd.yml@dev
+    with:
+      release: ${{ matrix.release }}
+      image_builder_ref: dev
