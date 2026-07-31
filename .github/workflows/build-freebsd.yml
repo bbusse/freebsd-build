@@ -14,7 +14,7 @@ jobs:
     name: Build FreeBSD ${{ matrix.release }}
     strategy:
       matrix:
-        release: ["15.0"]
+        release: ["15.1"]
     uses: bbusse/github-workflows/.github/workflows/build-freebsd.yml@dev
     with:
       release: ${{ matrix.release }}
