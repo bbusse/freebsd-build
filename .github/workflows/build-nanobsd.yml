@@ -16,3 +16,15 @@ jobs:
     with:
       image_builder_ref: dev
       mem: 4096
+
+  # arm64 isn't boot-tested yet - qemu-system-aarch64 needs a different
+  # machine type/firmware than the amd64 invocation below
+  test-boot:
+    name: Boot disk image under qemu
+    needs: build
+    uses: bbusse/github-workflows/.github/workflows/run-tests-bash-unit.yml@dev
+    with:
+      test_files: tests/test_boot_qemu_nanobsd.sh
+      install_klue_test_deps: false
+      install_qemu_deps: true
+      download_artifact_name: nanobsd-amd64-full-${{ github.run_number }}

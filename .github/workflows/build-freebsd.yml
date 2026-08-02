@@ -19,3 +19,18 @@ jobs:
     with:
       release: ${{ matrix.release }}
       image_builder_ref: dev
+
+  # arm64 isn't boot-tested yet - qemu-system-aarch64 needs a different
+  # machine type/firmware than the amd64 invocation below
+  test-boot:
+    name: Boot mini-memstick image under qemu
+    needs: build
+    strategy:
+      matrix:
+        release: ["15.1"]
+    uses: bbusse/github-workflows/.github/workflows/run-tests-bash-unit.yml@dev
+    with:
+      test_files: tests/test_boot_qemu_freebsd.sh
+      install_klue_test_deps: false
+      install_qemu_deps: true
+      download_artifact_name: freebsd-${{ matrix.release }}-amd64-mini-memstick-${{ github.run_number }}
