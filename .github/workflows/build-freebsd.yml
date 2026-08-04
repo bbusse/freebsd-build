@@ -21,10 +21,14 @@ jobs:
       image_builder_ref: dev
 
   # arm64 isn't boot-tested yet - qemu-system-aarch64 needs a different
-  # machine type/firmware than the amd64 invocation below
+  # machine type/firmware than the amd64 invocation below. build's arm64
+  # leg failing shouldn't skip this: run whenever the workflow wasn't
+  # cancelled, and let the artifact download fail loudly if amd64
+  # itself didn't produce one
   test-boot:
     name: Boot mini-memstick image under qemu
     needs: build
+    if: ${{ !cancelled() }}
     strategy:
       matrix:
         release: ["15.1"]

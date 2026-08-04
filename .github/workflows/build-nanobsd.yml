@@ -18,10 +18,14 @@ jobs:
       mem: 4096
 
   # arm64 isn't boot-tested yet - qemu-system-aarch64 needs a different
-  # machine type/firmware than the amd64 invocation below
+  # machine type/firmware than the amd64 invocation below. build's arm64
+  # leg failing shouldn't skip this: run whenever the workflow wasn't
+  # cancelled, and let the artifact download fail loudly if amd64
+  # itself didn't produce one
   test-boot:
     name: Boot disk image under qemu
     needs: build
+    if: ${{ !cancelled() }}
     uses: bbusse/github-workflows/.github/workflows/run-tests-bash-unit.yml@dev
     with:
       test_files: tests/test_boot_qemu_nanobsd.sh

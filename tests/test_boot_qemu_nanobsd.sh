@@ -94,12 +94,15 @@ setup_suite() {
     QEMU_PID=$!
 }
 
-test_disk_image_boots_to_login_prompt() {
+# bash_unit enumerates test_* functions via `set`, which lists them
+# alphabetically rather than in file order - these are numbered so
+# alphabetical order matches the required boot -> login -> shell sequence
+test_01_disk_image_boots_to_login_prompt() {
     assert "wait_for_pattern '[Ll]ogin:' ${BOOT_TIMEOUT}" \
         "Console should reach a login prompt within ${BOOT_TIMEOUT}s"
 }
 
-test_can_log_in_as_root() {
+test_02_can_log_in_as_root() {
     send_line "root"
     assert "wait_for_pattern '[Pp]assword:' ${LOGIN_TIMEOUT}" \
         "Console should prompt for a password after entering the username"
@@ -109,7 +112,7 @@ test_can_log_in_as_root() {
         "Should reach a root shell prompt after logging in"
 }
 
-test_shell_is_interactive() {
+test_03_shell_is_interactive() {
     local marker="BOOT_TEST_OK_$$"
     send_line "echo ${marker}"
     assert "wait_for_pattern '${marker}' 30" \
