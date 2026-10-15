@@ -14,14 +14,14 @@ jobs:
     name: Build NanoBSD
     uses: bbusse/github-workflows/.github/workflows/build-nanobsd.yml@dev
     with:
+      release: "15.1"
       image_builder_ref: dev
-      mem: 4096
 
-  # arm64 isn't boot-tested yet - qemu-system-aarch64 needs a different
-  # machine type/firmware than the amd64 invocation below. build's arm64
-  # leg failing shouldn't skip this: run whenever the workflow wasn't
-  # cancelled, and let the artifact download fail loudly if amd64
-  # itself didn't produce one
+  # amd64 only: NanoBSD's legacy layout (boot0sio MBR + BSD label) has no
+  # EFI boot path, so the arm64 image can't boot on qemu's virt machine.
+  # build's arm64 leg failing shouldn't skip this: run whenever the
+  # workflow wasn't cancelled, and let the artifact download fail loudly
+  # if amd64 itself didn't produce one
   test-boot:
     name: Boot disk image under qemu
     needs: build
@@ -29,6 +29,7 @@ jobs:
     uses: bbusse/github-workflows/.github/workflows/run-tests-bash-unit.yml@dev
     with:
       test_files: tests/test_boot_qemu_nanobsd.sh
-      install_klue_test_deps: false
       install_qemu_deps: true
+      enable_kvm: true
       download_artifact_name: nanobsd-amd64-full-${{ github.run_number }}
+      disk_image: nanobsd-amd64-full.img

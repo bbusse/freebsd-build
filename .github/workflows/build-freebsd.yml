@@ -20,21 +20,28 @@ jobs:
       release: ${{ matrix.release }}
       image_builder_ref: dev
 
-  # arm64 isn't boot-tested yet - qemu-system-aarch64 needs a different
-  # machine type/firmware than the amd64 invocation below. build's arm64
-  # leg failing shouldn't skip this: run whenever the workflow wasn't
-  # cancelled, and let the artifact download fail loudly if amd64
-  # itself didn't produce one
+  # One boot test per arch, each against that arch's own mini-memstick
+  # artifact: amd64 on ubuntu-latest (KVM once enable_kvm opens up
+  # /dev/kvm, TCG otherwise), arm64 on the native arm runner (UEFI on
+  # qemu's virt machine; TCG unless that runner turns out to have KVM).
+  # A failed build leg shouldn't skip the other arch's test: run whenever
+  # the workflow wasn't cancelled, and let the artifact download fail
+  # loudly for an arch whose build didn't produce one
   test-boot:
     name: Boot mini-memstick image under qemu
     needs: build
     if: ${{ !cancelled() }}
     strategy:
+      fail-fast: false
       matrix:
         release: ["15.1"]
+        arch: [amd64, arm64]
     uses: bbusse/github-workflows/.github/workflows/run-tests-bash-unit.yml@dev
     with:
       test_files: tests/test_boot_qemu_freebsd.sh
-      install_klue_test_deps: false
       install_qemu_deps: true
-      download_artifact_name: freebsd-${{ matrix.release }}-amd64-mini-memstick-${{ github.run_number }}
+      enable_kvm: true
+      test_arch: ${{ matrix.arch }}
+      use_arm_runner: ${{ matrix.arch == 'arm64' }}
+      download_artifact_name: freebsd-${{ matrix.release }}-${{ matrix.arch }}-mini-memstick-${{ github.run_number }}
+      disk_image: mini-memstick-${{ matrix.arch }}.img
