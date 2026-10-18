@@ -1,0 +1,108 @@
+name: Build patched FreeBSD kernel
+
+# Builds a GENERIC-based kernel (ident DDTFIX) and libzpool from
+# releng/<release> with patches/releng-<release>/*.patch applied, then
+# runs a zdb regression check for openzfs/zfs#18819 on the build VM
+
+on:
+  push:
+    paths:
+      - 'patches/**'
+      - 'scripts/build-patched-kernel.sh'
+      - 'scripts/test-zdb-ddt-gang.sh'
+      - 'scripts/test-repair-flow.sh'
+      - 'scripts/zhack-core-analysis.sh'
+      - 'scripts/zfs-repair-steps.sh'
+      - '.github/workflows/build-patched-kernel.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: FreeBSD ${{ matrix.release }} DDTFIX kernel (amd64)
+    # vmactions runs the FreeBSD guest under KVM on Linux runners
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      matrix:
+        release: ["15.1"]
+    env:
+      RELEASE: ${{ matrix.release }}
+      KERNCONF: DDTFIX
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Build and test in FreeBSD VM
+        uses: vmactions/freebsd-vm@c46abacb49f09938ca4e1702d15d836285d694cc # v1.5.9
+        with:
+          release: ${{ matrix.release }}
+          usesh: true
+          sync: rsync
+          mem: 12288
+          envs: 'RELEASE KERNCONF'
+          run: |
+            set -eu
+            sh scripts/build-patched-kernel.sh
+            # Keep the job going on a test failure so the artifact is
+            # still uploaded; the result is enforced in a later step
+            if sh scripts/test-zdb-ddt-gang.sh >out/zdb-ddt-gang-test.log 2>&1; then
+              echo pass >out/zdb-ddt-gang-test.result
+            else
+              echo fail >out/zdb-ddt-gang-test.result
+            fi
+            cat out/zdb-ddt-gang-test.log
+            # Rehearse the in-place repair of openzfs#18819 damage with
+            # the repair tools: on this VM's stock (unfixed) kernel, make
+            # a 3-vdev pool like hq-jails whose freed gang headers were
+            # reused by live blocks before being freed again, repair it
+            # with the hq-jails procedure, import it without
+            # vfs.zfs.recover, scrub and compare every file, then repeat
+            # each writable zhack step on fresh copies of its input
+            if [ -f scripts/test-repair-flow.sh ] && [ -s out/.tools-dir ]; then
+              tools="$(cat out/.tools-dir)"
+              if ZDB="$tools/zdb.repair" ZHACK="$tools/zhack.repair" \
+                LIBDIR="$(cat out/.libzpool-dir)" \
+                ZHACK_LIBDIR="$(cat out/.libzpool-nodebug-dir)" \
+                REPRO_OUT="$PWD/out/repair-rehearsal" REPRO_STRESS=5 \
+                sh scripts/test-repair-flow.sh >out/repair-rehearsal.log 2>&1; then
+                echo pass >out/repair-rehearsal.result
+              else
+                echo fail >out/repair-rehearsal.result
+              fi
+              cat out/repair-rehearsal.log
+            fi
+
+      - name: Upload kernel and libzpool
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: freebsd-${{ matrix.release }}-DDTFIX-amd64-${{ github.run_number }}
+          path: |
+            out/*.txz
+            out/BUILDINFO
+            out/SHA256
+            out/*.log
+            out/repair-rehearsal/
+
+      - name: Check zdb regression test
+        run: |
+          {
+            echo '### zdb regression check (openzfs/zfs#18819)'
+            echo '```'
+            cat out/zdb-ddt-gang-test.log
+            echo '```'
+          } >>"$GITHUB_STEP_SUMMARY"
+          test "$(cat out/zdb-ddt-gang-test.result)" = pass
+
+      - name: Check repair rehearsal
+        if: ${{ !cancelled() && hashFiles('scripts/test-repair-flow.sh') != '' }}
+        run: |
+          {
+            echo '### In-place repair rehearsal (openzfs/zfs#18819 damage)'
+            echo '```'
+            tail -n 80 out/repair-rehearsal.log
+            echo '```'
+          } >>"$GITHUB_STEP_SUMMARY"
+          test "$(cat out/repair-rehearsal.result)" = pass
