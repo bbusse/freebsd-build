@@ -34,7 +34,7 @@ BOOT_TIMEOUT="${BOOT_TIMEOUT:-900}"
 LOGIN_TIMEOUT="${LOGIN_TIMEOUT:-60}"
 SHELL_TIMEOUT="${SHELL_TIMEOUT:-30}"
 # Set by image-builder's freebsd_customize_image (freebsd_ci_root_password)
-ROOT_PASSWORD="${ROOT_PASSWORD:-freebsd-ci}"
+ROOT_PASSWORD="${ROOT_PASSWORD:-moonshine}"
 # If set, the console and qemu logs are also copied here (e.g. for an
 # upload-artifact step)
 BOOT_LOG_DIR="${BOOT_LOG_DIR:-}"

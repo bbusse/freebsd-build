@@ -20,7 +20,7 @@
 # The qemu plumbing and the test sequence are shared with the NanoBSD
 # test in qemu_boot_lib.sh.
 
-DISK_IMAGE="${DISK_IMAGE:-mini-memstick-${QEMU_ARCH:-amd64}.img}"
+DISK_IMAGE="${DISK_IMAGE:-freebsd-mini-memstick-${QEMU_ARCH:-amd64}.img}"
 
 # shellcheck source=tests/qemu_boot_lib.sh
 source "$(dirname "${BASH_SOURCE[0]}")/qemu_boot_lib.sh"
