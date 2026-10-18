@@ -44,4 +44,4 @@ jobs:
       test_arch: ${{ matrix.arch }}
       use_arm_runner: ${{ matrix.arch == 'arm64' }}
       download_artifact_name: freebsd-${{ matrix.release }}-${{ matrix.arch }}-mini-memstick-${{ github.run_number }}
-      disk_image: mini-memstick-${{ matrix.arch }}.img
+      disk_image: freebsd-mini-memstick-${{ matrix.arch }}.img
