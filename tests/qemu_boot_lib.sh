@@ -20,10 +20,11 @@
 # as soon as the pattern shows up or qemu exits, so a long timeout costs
 # nothing on success. QEMU_ACCEL=tcg forces TCG.
 #
-# amd64 boots the image's MBR through qemu's default SeaBIOS, with the
-# disk on AHCI so it probes as ada0 (NanoBSD's fstab hardcodes
-# NANO_DRIVE=ada0). arm64 boots UEFI firmware from qemu-efi-aarch64 on
-# qemu's virt machine, with the disk on virtio-blk.
+# amd64 boots the image's MBR (NanoBSD) or protective MBR and gptzfsboot
+# (FreeBSD) through qemu's default SeaBIOS, with the disk on AHCI so it
+# probes as ada0 (NanoBSD's fstab hardcodes NANO_DRIVE=ada0). arm64 boots
+# UEFI firmware from qemu-efi-aarch64 on qemu's virt machine, with the
+# disk on virtio-blk.
 
 # qemu option values are comma-separated, not misplaced array separators
 # shellcheck disable=SC2054

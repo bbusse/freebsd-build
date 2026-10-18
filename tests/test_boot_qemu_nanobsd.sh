@@ -18,7 +18,7 @@
 # password prompt and test_02 fails on the missing "Password:".
 #
 # The qemu plumbing and the test sequence are shared with the FreeBSD
-# mini-memstick test in qemu_boot_lib.sh.
+# image test in qemu_boot_lib.sh.
 
 DISK_IMAGE="${DISK_IMAGE:-nanobsd-${QEMU_ARCH:-amd64}-full.img}"
 
