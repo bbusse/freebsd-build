@@ -1,0 +1,89 @@
+name: Build FreeBSD
+
+on:
+  push:
+    paths-ignore:
+      - '**.md'
+    branches:
+      - '**'
+    tags:
+      - 'rc-*'
+      - 'release-*'
+  pull_request:
+    paths-ignore:
+      - '**.md'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build FreeBSD ${{ matrix.release }}
+    strategy:
+      matrix:
+        release: ["15.1"]
+    uses: bbusse/github-workflows/.github/workflows/build-freebsd.yml@dev
+    with:
+      release: ${{ matrix.release }}
+      image_builder_ref: dev
+
+  # One boot test per arch and root filesystem, each against that arch's
+  # own UFS or ZFS image from the build artifact: amd64 on ubuntu-latest (KVM once enable_kvm opens up
+  # /dev/kvm, TCG otherwise), arm64 on the native arm runner (UEFI on
+  # qemu's virt machine; TCG unless that runner turns out to have KVM).
+  # A failed build leg shouldn't skip the other arch's test: run whenever
+  # the workflow wasn't cancelled, and let the artifact download fail
+  # loudly for an arch whose build didn't produce one
+  test-boot:
+    name: Boot FreeBSD image under qemu
+    needs: build
+    if: ${{ !cancelled() }}
+    strategy:
+      fail-fast: false
+      matrix:
+        release: ["15.1"]
+        arch: [amd64, arm64]
+        fs: [ufs, zfs]
+    uses: bbusse/github-workflows/.github/workflows/run-tests-bash-unit.yml@dev
+    with:
+      test_files: tests/test_boot_qemu_freebsd.sh
+      install_qemu_deps: true
+      enable_kvm: true
+      test_arch: ${{ matrix.arch }}
+      use_arm_runner: ${{ matrix.arch == 'arm64' }}
+      download_artifact_name: freebsd-${{ matrix.release }}-${{ matrix.arch }}-${{ github.run_number }}
+      disk_image: freebsd-${{ matrix.arch }}-${{ matrix.fs }}.img
+
+  # release.yml publishes every file of the freebsd-release-* artifacts as
+  # <file>-<version> and <file>-latest, the way linux-kernel-build ships its
+  # kernels. Packaged once every arch has booted, for the rc-* and release-*
+  # tags make rc and make release push from ci
+  package:
+    name: Package FreeBSD ${{ matrix.release }} (${{ matrix.arch }}, ${{ matrix.fs }})
+    needs: test-boot
+    if: ${{ startsWith(github.ref, 'refs/tags/') }}
+    strategy:
+      matrix:
+        release: ["15.1"]
+        arch: [amd64, arm64]
+        fs: [ufs, zfs]
+    uses: bbusse/github-workflows/.github/workflows/package-release-artifact.yml@dev
+    with:
+      artifact_name: freebsd-${{ matrix.release }}-${{ matrix.arch }}-${{ github.run_number }}
+      file: freebsd-${{ matrix.arch }}-${{ matrix.fs }}.img
+      # Named the way image-builder's freebsd_release_file expects them
+      name: freebsd-${{ matrix.release }}-${{ matrix.arch }}-${{ matrix.fs }}
+      release_artifact: freebsd-release-${{ matrix.arch }}-${{ matrix.fs }}
+
+  # image-builder composes these images into its Gentoo disk images as an
+  # optional FreeBSD slot, fetched from the latest release
+  release:
+    needs: package
+    if: ${{ startsWith(github.ref, 'refs/tags/') }}
+    permissions:
+      contents: write
+    uses: bbusse/github-workflows/.github/workflows/release.yml@dev
+    with:
+      artifact_name: freebsd-release
+      binary_name: freebsd
+      release_branch: ci
+      version_branch: main
+    secrets: inherit
